@@ -7,7 +7,7 @@ const { Book } = require('./models/book-model');
 const { User } = require("./models/user-model");
 const { Student } = require("./models/student-model");
 
-mongoose.connect('mongodb+srv://jmkemp20:jajabinks@classroomlibdb.rpwpl.mongodb.net/ClassroomLibDB?retryWrites=true&w=majority', {
+mongoose.connect('', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false
