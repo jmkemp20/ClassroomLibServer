@@ -5,6 +5,7 @@ const app = express();
 const apiPort = 3001;
 const { Book } = require('./models/book-model');
 const { User } = require("./models/user-model");
+const { Student } = require("./models/student-model");
 
 mongoose.connect('mongodb+srv://jmkemp20:jajabinks@classroomlibdb.rpwpl.mongodb.net/ClassroomLibDB?retryWrites=true&w=majority', {
     useNewUrlParser: true,
@@ -17,19 +18,16 @@ mongoose.connect('mongodb+srv://jmkemp20:jajabinks@classroomlibdb.rpwpl.mongodb.
 const db = mongoose.connection;
 
 /*
-const testUser = new User({
-    firstName: 'Joshua',
-    lastName: 'Kemp',
-    country: 'United States',
-    address: '952 Stockleybridge Drive, Chesapeake VA',
-    phone: '757-724-2212',
-    numClasses: 1,
-    classes: ['A Bell'],
+const testStudent = new Student({
+    name: 'Joshua Kemp',
+    parent_id: '611b0601c0a68118a067277a',
+    classroom: 'A Block',
     email: 'jkemp952@gmail.com',
-    password: 'password123'
+    num_books: 1,
+    book_list: ['6116bece868a12c9eb427c69']
 });
 
-testUser.save((err) => {
+testStudent.save((err) => {
     if (err) throw err;
 });
 */
@@ -46,12 +44,6 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
-});
-
-app.get("/library", (req, res) => {
-    Book.find((error, result) => {
-        res.send(result);
-    });
 });
 
 app.post('/register', (req, res) => {
@@ -71,7 +63,50 @@ app.post('/register', (req, res) => {
       if (err) throw err;
     });
     console.log(`Registered New User: ${email}`);
-    res.send("Success");
-})
+    res.end("Success");
+});
+
+app.post('/login', (req, res) => {
+    const { email, password } = req.body;
+    User.findOne({ email: email }, (err, user) => {
+        if (err) throw err;
+        if (user !== null) {
+            user.comparePassword(password, (err, isMatch) => {
+                if (err) throw err;
+                if (isMatch) {
+                    const data = {
+                        id: user._id,
+                        firstName: user.firstName,
+                        lastName: user.lastName,
+                        country: user.country,
+                        address: user.address,
+                        phone: user.phone,
+                        numClasses: user.numClasses,
+                        classes: user.classes
+                    }
+                    res.send(data);
+                } else {
+                    res.send(false);
+                }
+            });
+        } else {
+            res.send(false);
+        }
+    });
+});
+
+app.post('/students', (req, res) => {
+    const parentId = req.body.userId;
+    Student.find({ parent_id: parentId }, (err, result) => {
+        console.log(result);
+        res.json(result);
+    });
+});
+
+app.post("/library", (req, res) => {
+    Book.find((error, result) => {
+        res.json(result);
+    });
+});
 
 app.listen(apiPort, () => console.log(`Server running on port ${apiPort}`));
