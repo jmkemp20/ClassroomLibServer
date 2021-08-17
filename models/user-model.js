@@ -11,6 +11,7 @@ const userSchema = new Schema({
     phone: String,
     numClasses: Number,
     classes: [String],
+    lastLogin: Number,
     email: { type: String, required: true, index: { unique: true }},
     password: { type: String, required: true }
 }, { collection: 'ClassroomUsers' });

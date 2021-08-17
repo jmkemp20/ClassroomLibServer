@@ -1,8 +1,10 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const bookSchema = new Schema({
-    _id: Number,
+const bookSchema = new Schema(
+  {
+    _id: Schema.ObjectId,
+    parent_id: { type: Schema.ObjectId, ref: "User" },
     authors: String,
     first_name: String,
     last_name: String,
@@ -24,9 +26,9 @@ const bookSchema = new Schema({
     pages: Number,
     price: String,
     isbn10: String,
-    isbn13: Number
-},
-{ collection: 'ClassroomBooks'}
+    isbn13: Number,
+  },
+  { collection: "ClassroomBooks" }
 );
 
 const Book = mongoose.model('book', bookSchema);
