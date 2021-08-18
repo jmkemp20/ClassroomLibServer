@@ -22,20 +22,19 @@ mongoose
 
 const db = mongoose.connection;
 
-/*
 const testStudent = new Student({
-    name: 'Joshua Kemp',
-    parent_id: '611b0601c0a68118a067277a',
-    classroom: 'A Block',
-    email: 'jkemp952@gmail.com',
-    num_books: 1,
-    book_list: ['6116bece868a12c9eb427c69']
+  name: "Joe Shmoe",
+  parent_id: "611b0601c0a68118a067277a",
+  classroom: "A Block",
+  email: "jshmoe@gmail.com",
+  num_books: 1,
+  book_list: ["6116bece868a12c9eb427c69"],
 });
 
 testStudent.save((err) => {
     if (err) throw err;
 });
-*/
+
 
 db.on("connected", () => {
   console.log("Connected to MONGODB");
@@ -121,20 +120,18 @@ app.post("/studentsBooks", (req, res) => {
   const returnData = [];
   Student.findOne({ _id: studentId, parent_id: parentId }, (err, result) => {
     if (result) {
-        for (const i in result.book_list) {
-            bookId = mongoose.Types.ObjectId(result.book_list[i]);
-            Book.findOne({ _id: bookId},
-            (err, book) => {
-                if (err) throw err;
-                console.log(`Pushing book: ${book.title}`);
-                returnData.push(book);
-                if (result.book_list.length === Object.keys(returnData).length) {
-                    res.json(returnData);
-                }
-            }
-            );
-        }
-    }   
+      for (const i in result.book_list) {
+        bookId = mongoose.Types.ObjectId(result.book_list[i]);
+        Book.findOne({ _id: bookId }, (err, book) => {
+          if (err) throw err;
+          console.log(`Pushing book: ${book.title}`);
+          returnData.push(book);
+          if (result.book_list.length === Object.keys(returnData).length) {
+            res.json(returnData);
+          }
+        });
+      }
+    }
   });
 });
 
@@ -168,6 +165,78 @@ app.post("/newStudent", (req, res) => {
     res.send(data);
   });
   console.log(`Registered New Student: ${name}`);
+});
+
+const isValidISBN = (str) => {
+  var sum, weight, digit, check, i;
+
+  str = String(str).replace(/[^0-9X]/gi, "");
+
+  if (str.length != 10 && str.length != 13) {
+    return false;
+  }
+
+  if (str.length == 13) {
+    sum = 0;
+    for (i = 0; i < 12; i++) {
+      digit = parseInt(str[i]);
+      if (i % 2 == 1) {
+        sum += 3 * digit;
+      } else {
+        sum += digit;
+      }
+    }
+    check = (10 - (sum % 10)) % 10;
+    return check == str[str.length - 1];
+  }
+
+  if (str.length == 10) {
+    weight = 10;
+    sum = 0;
+    for (i = 0; i < 9; i++) {
+      digit = parseInt(str[i]);
+      sum += weight * digit;
+      weight--;
+    }
+    check = (11 - (sum % 11)) % 11;
+    if (check == 10) {
+      check = "X";
+    }
+    return check == str[str.length - 1].toUpperCase();
+  }
+};
+
+app.post("/newBook", (req, res) => {
+  const { userId, title, author, isbn, date, publisher, pages, description } =
+    req.body;
+  if (!isValidISBN(isbn)) {
+    res.sendStatus(400);
+  }
+  const tempBook = new Book({
+    _id: mongoose.Types.ObjectId(),
+    parent_id: userId,
+    authors: author,
+    title: title,
+    description: description,
+    copies: 1,
+    publisher: publisher,
+    publish_date: date,
+    pages: pages,
+  });
+  String(isbn).length == 10 ? tempBook.isbn10 = isbn : tempBook.isbn13 = isbn;
+  console.log(tempBook);
+  tempBook.save((err) => {
+    if (err) return res.sendStatus(500);
+    res.sendStatus(200);
+  });
+});
+
+app.post("/deleteBook", (req, res) => {
+  const { userId, bookId } = req.body;
+  Book.deleteOne({ _id: bookId, parent_id: userId }, (err) => {
+    if (err) return res.sendStatus(500);
+    res.sendStatus(200);
+  });
 });
 
 app.listen(apiPort, () => console.log(`Server running on port ${apiPort}`));

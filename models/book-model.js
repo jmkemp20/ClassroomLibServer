@@ -4,11 +4,11 @@ const Schema = mongoose.Schema;
 const bookSchema = new Schema(
   {
     _id: Schema.ObjectId,
-    parent_id: { type: Schema.ObjectId, ref: "User" },
-    authors: String,
+    parent_id: { type: Schema.ObjectId, ref: "User", required: true },
+    authors: { type: String, required: true },
     first_name: String,
     last_name: String,
-    title: String,
+    title: { type: String, required: true },
     description: String,
     rating: String,
     review_data: String,
@@ -25,10 +25,10 @@ const bookSchema = new Schema(
     publish_date: String,
     pages: Number,
     price: String,
-    isbn10: String,
-    isbn13: Number,
+    isbn10: Schema.Types.Mixed,
+    isbn13: Schema.Types.Mixed,
   },
-  { collection: "ClassroomBooks" }
+  { collection: "ClassroomBooks", timestamps: true }
 );
 
 const Book = mongoose.model('book', bookSchema);

@@ -14,7 +14,7 @@ const userSchema = new Schema({
     lastLogin: Number,
     email: { type: String, required: true, index: { unique: true }},
     password: { type: String, required: true }
-}, { collection: 'ClassroomUsers' });
+}, { collection: 'ClassroomUsers', timestamps: true });
 
 userSchema.pre("save", function (next) {
   var user = this;
