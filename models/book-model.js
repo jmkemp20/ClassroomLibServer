@@ -25,8 +25,8 @@ const bookSchema = new Schema(
     publish_date: String,
     pages: Number,
     price: String,
-    isbn10: Schema.Types.Mixed,
-    isbn13: Schema.Types.Mixed,
+    isbn10: { type: Schema.Types.Mixed, index: { unique: true } },
+    isbn13: { type: Schema.Types.Mixed, index: { unique: true } },
   },
   { collection: "ClassroomBooks", timestamps: true }
 );

@@ -2,7 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const app = express();
+const axios = require("axios");
 const apiPort = 3001;
+const ISBNConverter = require("simple-isbn").isbn;
 const { Book } = require("./models/book-model");
 const { User } = require("./models/user-model");
 const { Student } = require("./models/student-model");
@@ -21,20 +23,6 @@ mongoose
   });
 
 const db = mongoose.connection;
-
-const testStudent = new Student({
-  name: "Joe Shmoe",
-  parent_id: "611b0601c0a68118a067277a",
-  classroom: "A Block",
-  email: "jshmoe@gmail.com",
-  num_books: 1,
-  book_list: ["6116bece868a12c9eb427c69"],
-});
-
-testStudent.save((err) => {
-    if (err) throw err;
-});
-
 
 db.on("connected", () => {
   console.log("Connected to MONGODB");
@@ -223,12 +211,96 @@ app.post("/newBook", (req, res) => {
     publish_date: date,
     pages: pages,
   });
-  String(isbn).length == 10 ? tempBook.isbn10 = isbn : tempBook.isbn13 = isbn;
-  console.log(tempBook);
+  if (String(isbn).length == 10) {
+    tempBook.isbn10 = isbn;
+    tempBook.isbn13 = ISBNConverter.toIsbn13(String(isbn));
+  } else {
+    tempBook.isbn13 = isbn;
+    tempBook.isbn10 = ISBNConverter.toIsbn10(String(isbn));
+  }
   tempBook.save((err) => {
     if (err) return res.sendStatus(500);
     res.sendStatus(200);
   });
+});
+
+app.post("/newBookAuto", async (req, res) => {
+  const { userId, isbn } = req.body;
+  if (isValidISBN(isbn)) {
+    const bookuri = "https://openlibrary.org/isbn/" + isbn + ".json";
+    axios.get(bookuri, {}).then((response) => {
+      if (response.status == 200) {
+        const authoruri =
+          "https://openlibrary.org" + response.data.authors[0].key + ".json";
+        axios.get(authoruri, {}).then((authResponse) => {
+          if (authResponse.status == 200) {
+            const tempBook = new Book({
+              _id: mongoose.Types.ObjectId(),
+              parent_id: userId,
+              authors: authResponse.data.name,
+              title: response.data.title,
+              description: "No Description Found",
+              copies: 1,
+              publisher:
+                response.data.publishers.length > 0
+                  ? response.data.publishers[0]
+                  : "",
+              publish_date: response.data.publish_date,
+              pages: response.data.number_of_pages,
+              isbn10:
+                response.data.isbn_10.length > 0
+                  ? response.data.isbn_10[0]
+                  : "",
+              isbn13:
+                response.data.isbn_13.length > 0
+                  ? response.data.isbn_13[0]
+                  : "",
+            });
+            const myQuery = (isbn.length == 10 ? { isbn10: isbn } : { isbn13: isbn });
+            Book.findOne(myQuery, (newErr, book) => {
+              if (newErr) res.sendStatus(500);
+              if (book) {
+                book.copies += 1;
+                book.save((err) => {
+                  if (err) return res.sendStatus(500);
+
+                  console.log(`Success Auto Updated: ${tempBook.title}`);
+                  const tempData = {
+                    statusCode: 201,
+                    returnBody: {
+                      message: "Book already exists",
+                      copies: book.copies,
+                    },
+                  };
+                  return res.send(tempData);
+                });
+              } else {
+                tempBook.save((err) => {
+                  if (err) return res.sendStatus(500);
+
+                  console.log(`Success Auto Added: ${tempBook.title}`);
+                  const tempData = {
+                    statusCode: 200,
+                    returnBody: {
+                      title: tempBook.title,
+                      author: tempBook.authors,
+                    },
+                  };
+                  return res.send(tempData);
+                });
+              }
+            });
+          } else {
+            res.sendStatus(500);
+          }
+        });
+      } else {
+        res.sendStatus(500);
+      }
+    });
+  } else {
+    res.sendStatus(500);
+  }
 });
 
 app.post("/deleteBook", (req, res) => {
